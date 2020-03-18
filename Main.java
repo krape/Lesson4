@@ -10,9 +10,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
-    static Random random = new Random();
-    static Scanner scanner = new Scanner(System.in);
-    static Boolean end = false;
+    private static Random random = new Random();
+    private static Scanner scanner = new Scanner(System.in);
+    static volatile boolean end = false;
 
     public static void main(String[] args) {
 
@@ -21,28 +21,34 @@ public class Main {
         Condition condition = mutex.newCondition();
         System.out.println("Enter number of Threads: ");
         int numTreads = scanner.nextInt();
-
-//        FileWriter writer = null;
-//        try {
-//            writer = new FileWriter("output.txt");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
         File file = new File("output.txt");
-//        while (file.length() / 1024 < 100) {
-//
-//            int num = random.nextInt(1000) + 1;
-//            try {
-//                writer.write(num + System.getProperty("line.separator"));
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        try {
-//            writer.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        if(!file.exists()) {
+            FileWriter writer = null;
+            try {
+                writer = new FileWriter("output.txt");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            while (file.length() / 1024 < 100) {
+
+                int num = random.nextInt(1000) + 1;
+                try {
+                    if (writer != null) {
+                        writer.write(num + System.getProperty("line.separator"));
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            try {
+                if (writer != null) {
+                    writer.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         Thread producer = new Thread(new Producer(file, queue, mutex, condition));
         producer.start();
@@ -92,7 +98,7 @@ class Producer implements Runnable {
             String line = reader.readLine();
             while (line != null) {
                 int number = Integer.parseInt(line);
-                System.out.println("прочитал " + number);
+                System.out.println(Thread.currentThread().getId() +" прочитал " + number);
                 mutex.lock();
                 try {
                     numbers.add(number);
@@ -100,7 +106,6 @@ class Producer implements Runnable {
                 } finally {
                     mutex.unlock();
                 }
-//                Thread.sleep(10);
                 line = reader.readLine();
             }
             Main.end = true;
@@ -110,7 +115,7 @@ class Producer implements Runnable {
             } finally {
                 mutex.unlock();
             }
-        } catch (IOException /*| InterruptedException*/ e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -132,8 +137,6 @@ class Consumer implements Runnable {
     public void run() {
         System.out.println(Thread.currentThread().getId() + " i am here!");
         while (true) {
-
-
             try {
                 mutex.lock();
                 Integer number = numbers.poll();
@@ -150,10 +153,8 @@ class Consumer implements Runnable {
                     }
                     number = numbers.poll();
                 }
-                Integer fibNum = getFib(number);
+                int fibNum = getFib(number);
                 System.out.println(Thread.currentThread().getId() + ": Число Фиббоначи номер " + number + " равно " + fibNum);
-
-
             } catch (NullPointerException e) {
                 e.printStackTrace();
             } finally {
@@ -162,7 +163,7 @@ class Consumer implements Runnable {
         }
     }
 
-    private Integer getFib(Integer index) {
+    private int getFib(int index) {
         Integer a = 0;
         Integer b = 1;
         for (int i = 2; i <= index; i++) {
