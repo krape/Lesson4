@@ -164,8 +164,8 @@ class Consumer implements Runnable {
     }
 
     private int getFib(int index) {
-        Integer a = 0;
-        Integer b = 1;
+        int a = 0;
+        int b = 1;
         for (int i = 2; i <= index; i++) {
             Integer next = a + b;
             a = b;
