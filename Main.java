@@ -86,28 +86,33 @@ class Producer implements Runnable {
     @Override
     public void run() {
         try {
-            mutex.lock();
+
             FileReader fr = new FileReader(file);
             BufferedReader reader = new BufferedReader(fr);
             String line = reader.readLine();
             while (line != null) {
                 int number = Integer.parseInt(line);
                 System.out.println("прочитал " + number);
-                numbers.add(number);
-                condition.signal();
+                mutex.lock();
                 try {
-                    Thread.sleep(Main.random.nextInt(10));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    numbers.add(number);
+                    condition.signal();
+                } finally {
+                    mutex.unlock();
                 }
+//                Thread.sleep(10);
                 line = reader.readLine();
             }
-        } catch (IOException e) {
+            Main.end = true;
+            mutex.lock();
+            try {
+                condition.signalAll();
+            } finally {
+                mutex.unlock();
+            }
+        } catch (IOException /*| InterruptedException*/ e) {
             e.printStackTrace();
-        } finally {
-            mutex.unlock();
         }
-        Main.end = true;
     }
 }
 
@@ -156,6 +161,7 @@ class Consumer implements Runnable {
             }
         }
     }
+
     private Integer getFib(Integer index) {
         Integer a = 0;
         Integer b = 1;
